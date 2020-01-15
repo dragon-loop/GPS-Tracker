@@ -1,0 +1,27 @@
+name: Testing
+ 
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+ 
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v1.0.0
+ 
+      - name: Install platform
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr
+
+      - name: Copy library files
+        run: |
+          cp -r ./Arduino/libraries/Adafruit_FONA_Library/Adafruit_FONA.* ./GPS_Tracker
+          cp -r ./Arduino/libraries/Adafruit_FONA_Library/includes ./GPS_Tracker/includes
+
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn arduino:avr:uno ./GPS_Tracker
+
