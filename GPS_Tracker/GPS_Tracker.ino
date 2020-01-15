@@ -83,9 +83,30 @@ void setup() {
   //fona.setNetworkSettings(F("your APN"), F("your username"), F("your password"));
   fona.setNetworkSettings(F("hologram")); // For Hologram SIM card
 
+  // Perform first-time GPS/GPRS setup if the shield is going to remain on,
+  // otherwise these won't be enabled in loop()
+  #ifndef turnOffShield
   
+  // Enable GPS if turnOffShield is not defined. If it is defined skip to **
+  while (!fona.enableGPS(true)) {
+    Serial.println(F("Failed to turn on GPS, retrying..."));
+    delay(2000); // Retry every 2s
+  }
+  Serial.println(F("Turned on GPS!"));
   
-
+  // Disable GPRS just to make sure it was actually off so that we can turn it on
+  if (!fona.enableGPRS(false)) {
+    Serial.println(F("Failed to disable GPRS!"));
+  }
+  
+  // Turn on GPRS
+  while (!fona.enableGPRS(true)) {
+    Serial.println(F("Failed to enable GPRS, retrying..."));
+    delay(2000); // Retry every 2s
+  }
+  Serial.println(F("Enabled GPRS!"));
+  #endif
+  // **
 }
 
 void loop() {
