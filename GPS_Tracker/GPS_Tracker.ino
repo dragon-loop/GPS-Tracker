@@ -62,7 +62,7 @@ uint8_t counter = 0;
 // Start setup
 void setup() {
   Serial.begin(9600);
-  Serial.println(F("*** SIM7000A GPS Tracker ***"));
+  Serial.println(F("* SIM7000A GPS Tracker *"));
 
   pinMode(FONA_RST, OUTPUT);
   digitalWrite(FONA_RST, HIGH); // Default state
@@ -92,11 +92,11 @@ void setup() {
     Serial.println(F("Failed to turn on GPS, retrying..."));
     delay(2000); // Retry every 2s
   }
-  Serial.println(F("Turned on GPS!"));
+  Serial.println(F("Turned on GPS"));
   
   // Disable GPRS just to make sure it was actually off so that we can turn it on
   if (!fona.enableGPRS(false)) {
-    Serial.println(F("Failed to disable GPRS!"));
+    Serial.println(F("Failed to disable GPRS"));
   }
   
   // Turn on GPRS
@@ -104,12 +104,53 @@ void setup() {
     Serial.println(F("Failed to enable GPRS, retrying..."));
     delay(2000); // Retry every 2s
   }
-  Serial.println(F("Enabled GPRS!"));
+  Serial.println(F("Enabled GPRS"));
   #endif
   // **
 }
 
 void loop() {
+  // Connect to cell network and verify connection
+  while (!netStatus()) {
+    Serial.println(F("Failed to connect to cell network, retrying..."));
+    delay(2000); // Retry every 2s
+  }
+  Serial.println(F("Connected to cell network"));
+
+  // Turn on GPS if it wasn't on already
+  #ifdef turnOffShield
+  while (!fona.enableGPS(true)) {
+    Serial.println(F("Failed to turn on GPS, retrying..."));
+    delay(2000); // Retry every 2s
+  }
+  Serial.println(F("Turned on GPS"));
+  #endif
+
+  // Get a fix on location
+  // Use the top line if you want to parse UTC time data as well, the line below it if you don't care
+  // while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, &year, &month, &day, &hour, &minute, &second)) {
+  while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
+    Serial.println(F("Failed to get GPS location, retrying..."));
+    delay(2000); // Retry every 2s
+  }
+  Serial.print(F("Latitude: ")); Serial.println(latitude, 6);
+  Serial.print(F("Longitude: ")); Serial.println(longitude, 6);
+  Serial.print(F("Speed: ")); Serial.println(speed_kph);
+  Serial.print(F("Heading: ")); Serial.println(heading);
+  Serial.print(F("Altitude: ")); Serial.println(altitude);
+  /*
+  // Uncomment this if you care about parsing UTC time
+  Serial.print(F("Year: ")); Serial.println(year);
+  Serial.print(F("Month: ")); Serial.println(month);
+  Serial.print(F("Day: ")); Serial.println(day);
+  Serial.print(F("Hour: ")); Serial.println(hour);
+  Serial.print(F("Minute: ")); Serial.println(minute);
+  Serial.print(F("Second: ")); Serial.println(second);
+  */
+
+
+
+  
 }
 
 // Power on the module
@@ -138,7 +179,7 @@ void moduleSetup() {
   Serial.println(F("FONA is OK"));
   Serial.print(F("Found "));
   if (type == SIM7500A) {
-      Serial.println(F("SIM7500A (American)"));
+      Serial.println(F("SIM7500A"));
   } else {
       Serial.println(F("???"));
   }
@@ -150,4 +191,20 @@ void getIMEINum() {
   if (imeiLen > 0) {
     Serial.print("Module IMEI: "); Serial.println(imei);
   }
+}
+
+// Check the network status of the SIM
+bool netStatus() {
+  int n = fona.getNetworkStatus();
+  
+  Serial.print(F("Network status ")); Serial.print(n); Serial.print(F(": "));
+  if (n == 0) Serial.println(F("Not registered"));
+  if (n == 1) Serial.println(F("Registered (home)"));
+  if (n == 2) Serial.println(F("Not registered (searching)"));
+  if (n == 3) Serial.println(F("Denied"));
+  if (n == 4) Serial.println(F("Unknown"));
+  if (n == 5) Serial.println(F("Registered roaming"));
+
+  if (!(n == 1 || n == 5)) return false;
+  else return true;
 }
