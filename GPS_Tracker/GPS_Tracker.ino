@@ -177,13 +177,14 @@ void loop() {
   attempts = 0; // This counts the number of failed attempts
   
   sprintf(URL, "www.URL.com"); // The URL of the endpoint the data is being sent to
-  sprintf(body, "{\"IMEI\":%s,\"lat\":%s,\"long\":%s}", imei, latBuff, longBuff);
+  sprintf(body, "{\"busId\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%s,\"tripId\":%s}", imei, latBuff, longBuff, 1, 1);
   
   while (attempts < 3 && !fona.postData("POST", URL, body)) {
     Serial.println(F("Failed to complete HTTP POST..."));
     attempts++;
     delay(2000);
   }
+  delay(30000);
   
   // The code below will only run if turnOffShield is defined
   // It will turn off the shield after posting data
