@@ -176,7 +176,7 @@ void loop() {
   // Setting up the POST request
   attempts = 0; // This counts the number of failed attempts
   
-  sprintf(URL, "www.URL.com"); // The URL of the endpoint the data is being sent to
+  sprintf(URL, "http://50.116.63.34:5001/api/Bus/\"%s\"/UpdateBusLocation", imei); // The URL of the endpoint the data is being sent to
   sprintf(body, "{\"busId\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%s,\"tripId\":%s}", imei, latBuff, longBuff, 1, 1);
   
   while (attempts < 3 && !fona.postData("POST", URL, body)) {
