@@ -28,7 +28,7 @@
 char replybuffer[255];
 
 // Buffers for data
-char URL[200];  // Request URL
+char URL[200] = "http://50.116.63.34/api/Bus/UpdateBusLocation";  // Request URL
 char body[100]; // POST body
 char latBuff[12], longBuff[12], locBuff[50], speedBuff[12],
      headBuff[12], altBuff[12], tempBuff[12], battBuff[12];
@@ -175,9 +175,11 @@ void loop() {
 
   // Setting up the POST request
   attempts = 0; // This counts the number of failed attempts
-  
-  sprintf(URL, "http://50.116.63.34:5001/api/Bus/\"%s\"/UpdateBusLocation", imei); // The URL of the endpoint the data is being sent to
-  sprintf(body, "{\"busId\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%s,\"tripId\":%s}", imei, latBuff, longBuff, 1, 1);
+
+ // The URL of the endpoint the data is being sent to
+  sprintf(body, "{\"imei\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%d}", imei, latBuff, longBuff, 1);
+  Serial.println(URL);
+  Serial.println(body);
   
   while (attempts < 3 && !fona.postData("POST", URL, body)) {
     Serial.println(F("Failed to complete HTTP POST..."));
