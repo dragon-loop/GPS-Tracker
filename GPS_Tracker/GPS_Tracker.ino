@@ -31,17 +31,12 @@ char replybuffer[255];
 char URL[200] = "http://50.116.63.34/api/Bus/UpdateBusLocation";  // Request URL
 char body[100]; // POST body
 char latBuff[12], longBuff[12], locBuff[50], speedBuff[12],
-     headBuff[12], altBuff[12], tempBuff[12], battBuff[12];
+     headBuff[12], altBuff[12];
 
-// We default to using software serial. If you want to use hardware serial
-// (because softserial isnt supported) comment out the following three lines 
-// and uncomment the HardwareSerial line
+// We default to using software serial
 #include <SoftwareSerial.h>
 SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
 SoftwareSerial *fonaSerial = &fonaSS;
-
-// Hardware serial is also possible!
-//HardwareSerial *fonaSerial = &Serial1;
 
 // The SIM7000 uses LTE CAT-M/NB-IoT
 Adafruit_FONA_LTE fona = Adafruit_FONA_LTE();
@@ -50,7 +45,6 @@ Adafruit_FONA_LTE fona = Adafruit_FONA_LTE();
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 uint8_t type;
 char imei[16] = {0}; // 16 character buffer for IMEI
-uint16_t battLevel = 0; // Battery level (percentage)
 float latitude, longitude, speed_kph, heading, altitude, second;
 uint16_t year;
 uint8_t month, day, hour, minute;
@@ -77,7 +71,7 @@ void setup() {
 
   // Configure a GPRS APN, username, and password if needed
   // Username and password are optional and can be removed, but APN is required
-  //fona.setNetworkSettings(F("your APN"), F("your username"), F("your password"));
+  // ex: fona.setNetworkSettings(F("your APN"), F("your username"), F("your password"));
   fona.setNetworkSettings(F("hologram")); // For Hologram SIM card
 
   // Perform first-time GPS/GPRS setup if the shield is going to remain on,
@@ -162,8 +156,6 @@ void loop() {
   dtostrf(speed_kph, 1, 0, speedBuff);
   dtostrf(heading, 1, 0, headBuff);
   dtostrf(altitude, 1, 1, altBuff);
-  // dtostrf(temperature, 1, 2, tempBuff); // float_val, min_width, digits_after_decimal, char_buffer
-  dtostrf(battLevel, 1, 0, battBuff);
 
   // Also construct a combined, comma-separated location array
   // (many platforms require this for dashboards, like Adafruit IO):
@@ -176,7 +168,7 @@ void loop() {
   // Setting up the POST request
   attempts = 0; // This counts the number of failed attempts
 
- // The URL of the endpoint the data is being sent to
+ // The Body of the data that will be sent to the endpoint
   sprintf(body, "{\"imei\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%d}", imei, latBuff, longBuff, 1);
   Serial.println(URL);
   Serial.println(body);
