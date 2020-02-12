@@ -15,6 +15,14 @@
 #define FONA_TX 10 // Microcontroller RX
 #define FONA_RX 11 // Microcontroller TX
 
+#define Route1 4 // Button for route 1
+#define Route2 2 // Button for route 2
+#define Route3 3 // Button for route 3
+#define Stop_Route 5 // Button for stopping a route
+
+#define Green_LED 8 // Green LED
+#define Red_LED 9 // Red LED can still use 12 and 13
+
 // The number of seconds in between posts
 #define samplingRate 30
 
@@ -48,7 +56,13 @@ char imei[16] = {0}; // 16 character buffer for IMEI
 float latitude, longitude, speed_kph, heading, altitude, second;
 uint16_t year;
 uint8_t month, day, hour, minute;
+
 uint8_t attempts = 0;
+uint8_t routeId = 0;
+int buttonState1 = 0;
+int buttonState2 = 0;
+int buttonState3 = 0;
+int buttonStateStop = 0;
 
 // Start setup
 void setup() {
@@ -73,6 +87,15 @@ void setup() {
   // Username and password are optional and can be removed, but APN is required
   // ex: fona.setNetworkSettings(F("your APN"), F("your username"), F("your password"));
   fona.setNetworkSettings(F("hologram")); // For Hologram SIM card
+
+  // Set up route buttons and LEDs
+  pinMode(Route1, INPUT);
+  pinMode(Route2, INPUT);
+  pinMode(Route3, INPUT);
+  pinMode(Stop_Route, INPUT);
+
+  pinMode(Green_LED, OUTPUT);
+  pinMode(Red_LED, OUTPUT);
 
   // Perform first-time GPS/GPRS setup if the shield is going to remain on,
   // otherwise these won't be enabled in loop()
@@ -101,6 +124,27 @@ void setup() {
 }
 
 void loop() {
+
+  buttonState1 = digitalRead(Route1);
+  buttonState2 = digitalRead(Route2);
+  buttonState3 = digitalRead(Route3);
+
+  buttonStateStop = digitalRead(Stop_Route);
+  
+  if (buttonState1 == HIGH) {
+    routeId = 1;
+  } else if (buttonState2 == HIGH) {
+    routeId = 2;
+  } else if (buttonState3 == HIGH) {
+    routeId = 3;
+  }
+
+  Serial.print(F("routeId: ")); Serial.println(routeId);
+
+  // If a route is not selected, do nothing
+  // Once a route is selected, turn on GPS and start sending location data
+  if (routeId == 1 or routeId == 2 or routeId == 3) {
+  
   // Connect to cell network and verify connection
   while (!netStatus()) {
     Serial.println(F("Failed to connect to cell network, retrying..."));
@@ -117,11 +161,14 @@ void loop() {
   Serial.println(F("Turned on GPS"));
   #endif
 
+  attempts = 0;
+
   // Get a fix on location
   // Use the top line if you want to parse UTC time data as well, the line below it if you don't care
   // while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, &year, &month, &day, &hour, &minute, &second)) {
-  while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
+  while (attempts < 3 & !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
     Serial.println(F("Failed to get GPS location, retrying..."));
+    attempts++;
     delay(2000); // Retry every 2s
   }
   Serial.print(F("Latitude: ")); Serial.println(latitude, 6);
@@ -169,7 +216,7 @@ void loop() {
   attempts = 0; // This counts the number of failed attempts
 
  // The Body of the data that will be sent to the endpoint
-  sprintf(body, "{\"imei\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%d}", imei, latBuff, longBuff, 1);
+  sprintf(body, "{\"imei\":%s,\"xCoordinate\":%s,\"yCoordinate\":%s,\"routeId\":%d}", imei, latBuff, longBuff, routeId);
   Serial.println(URL);
   Serial.println(body);
   
@@ -178,7 +225,6 @@ void loop() {
     attempts++;
     delay(2000);
   }
-  delay(30000);
   
   // The code below will only run if turnOffShield is defined
   // It will turn off the shield after posting data
@@ -229,6 +275,7 @@ void loop() {
     #endif
     
   #endif */
+  }
 }
 
 // Power on the module
