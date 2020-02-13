@@ -125,19 +125,11 @@ void setup() {
 
 void loop() {
 
-  buttonState1 = digitalRead(Route1);
-  buttonState2 = digitalRead(Route2);
-  buttonState3 = digitalRead(Route3);
+  // Check if a route has been started
+  routeState();
 
-  buttonStateStop = digitalRead(Stop_Route);
-  
-  if (buttonState1 == HIGH) {
-    routeId = 1;
-  } else if (buttonState2 == HIGH) {
-    routeId = 2;
-  } else if (buttonState3 == HIGH) {
-    routeId = 3;
-  }
+  // Check if stop button has been pressed
+  routeStop();
 
   Serial.print(F("routeId: ")); Serial.println(routeId);
 
@@ -166,16 +158,21 @@ void loop() {
   // Get a fix on location
   // Use the top line if you want to parse UTC time data as well, the line below it if you don't care
   // while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, &year, &month, &day, &hour, &minute, &second)) {
-  while (attempts < 3 & !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
+  while (attempts < 3 && routeId != 0 && !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
     Serial.println(F("Failed to get GPS location, retrying..."));
     attempts++;
     delay(2000); // Retry every 2s
+    routeState();
+    routeStop();
   }
   Serial.print(F("Latitude: ")); Serial.println(latitude, 6);
   Serial.print(F("Longitude: ")); Serial.println(longitude, 6);
   Serial.print(F("Speed: ")); Serial.println(speed_kph);
   Serial.print(F("Heading: ")); Serial.println(heading);
   Serial.print(F("Altitude: ")); Serial.println(altitude);
+
+  routeState();
+  routeStop();
   /*
   // Uncomment this if you care about parsing UTC time
   Serial.print(F("Year: ")); Serial.println(year);
@@ -220,11 +217,16 @@ void loop() {
   Serial.println(URL);
   Serial.println(body);
   
-  while (attempts < 3 && !fona.postData("POST", URL, body)) {
+  while (attempts < 3 && routeId != 0 && !fona.postData("POST", URL, body)) {
     Serial.println(F("Failed to complete HTTP POST..."));
     attempts++;
     delay(2000);
+    routeState();
+    routeStop();
   }
+
+  routeState();
+  routeStop();
   
   // The code below will only run if turnOffShield is defined
   // It will turn off the shield after posting data
@@ -259,7 +261,7 @@ void loop() {
   /* #ifndef samplingRate
     Serial.println(F("Shutting down..."));
     delay(5); // This is just to read the response of the last AT command before shutting down
-    MCU_powerDown(); // You could also write your own function to make it sleep for a certain duration instead
+    MCUPowerDown(); // You could also write your own function to make it sleep for a certain duration instead
   #else
     // The following lines are for if you want to periodically post data (like GPS tracker)
     Serial.print(F("Waiting for ")); Serial.print(samplingRate); Serial.println(F(" seconds\r\n"));
@@ -336,10 +338,40 @@ bool netStatus() {
 
 // Turn off the MCU completely. Can only wake up from RESET button
 // However, this can be altered to wake up via a pin change interrupt
-void MCU_powerDown() {
+void MCUPowerDown() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   ADCSRA = 0; // Turn off ADC
   power_all_disable ();  // Power off ADC, Timer 0 and 1, serial interface
   sleep_enable();
   sleep_cpu();
+}
+
+// Start a route if one of the buttons gets pressed
+void routeState() {
+
+  buttonState1 = digitalRead(Route1);
+  buttonState2 = digitalRead(Route2);
+  buttonState3 = digitalRead(Route3);
+  
+  if (buttonState1 == HIGH) {
+    routeId = 1;
+    Serial.print(F("routeId: ")); Serial.println(routeId);
+  } else if (buttonState2 == HIGH) {
+    routeId = 2;
+    Serial.print(F("routeId: ")); Serial.println(routeId);
+  } else if (buttonState3 == HIGH) {
+    routeId = 3;
+    Serial.print(F("routeId: ")); Serial.println(routeId);
+  }
+}
+
+// Reset the routeId to 0 to take the bus offline
+void routeStop() {
+
+  buttonStateStop = digitalRead(Stop_Route);
+  
+  if (buttonStateStop == HIGH) {
+    routeId = 0;
+    Serial.print(F("routeId: ")); Serial.println(routeId);
+  }
 }
