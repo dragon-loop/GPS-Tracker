@@ -359,14 +359,26 @@ void routeState() {
   buttonState3 = digitalRead(Route3);
   
   if (buttonState1 == HIGH) {
+    
     routeId = 1;
+    // The number of seconds in between posts (# of seconds times 1000L)
+    delayTime = (5*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
+    
   } else if (buttonState2 == HIGH) {
+    
     routeId = 2;
+    // The number of seconds in between posts (# of seconds times 1000L)
+    delayTime = (10*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
+    
   } else if (buttonState3 == HIGH) {
+    
     routeId = 3;
+    // The number of seconds in between posts (# of seconds times 1000L)
+    delayTime = (30*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
+    
   }
 }
 
