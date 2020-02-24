@@ -23,9 +23,6 @@
 #define Green_LED 8 // Green LED
 #define Red_LED 9 // Red LED can still use 12 and 13
 
-// The number of seconds in between posts
-#define samplingRate 30
-
 // The following line can be used to turn off the shield after posting data. This
 // could be useful for saving energy for sparse readings but keep in mind that it
 // will take longer to get a fix on location after turning back on than if it had
@@ -63,6 +60,10 @@ int buttonState1 = 0;
 int buttonState2 = 0;
 int buttonState3 = 0;
 int buttonStateStop = 0;
+unsigned long lastTime = 0L;
+
+// The number of seconds in between posts (# of seconds times 1000L)
+unsigned long delayTime = (30*1000L);
 
 // Start setup
 void setup() {
@@ -133,9 +134,10 @@ void loop() {
 
   Serial.print(F("routeId: ")); Serial.println(routeId);
 
-  // If a route is not selected, do nothing
-  // Once a route is selected, turn on GPS and start sending location data
-  if (routeId == 1 or routeId == 2 or routeId == 3) {
+  // Check if the delay time has past since the last POST
+  // If it has, get location and POST again
+  // Else skip back to the beginning of the loop
+  if (millis() - lastTime >= delayTime) {
   
   // Connect to cell network and verify connection
   while (!netStatus()) {
@@ -158,7 +160,7 @@ void loop() {
   // Get a fix on location
   // Use the top line if you want to parse UTC time data as well, the line below it if you don't care
   // while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, &year, &month, &day, &hour, &minute, &second)) {
-  while (attempts < 3 && routeId != 0 && !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
+  while (attempts < 5 && !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
     Serial.println(F("Failed to get GPS location, retrying..."));
     attempts++;
     delay(2000); // Retry every 2s
@@ -217,7 +219,7 @@ void loop() {
   Serial.println(URL);
   Serial.println(body);
   
-  while (attempts < 3 && routeId != 0 && !fona.postData("POST", URL, body)) {
+  while (attempts < 3 && !fona.postData("POST", URL, body)) {
     Serial.println(F("Failed to complete HTTP POST..."));
     attempts++;
     delay(2000);
@@ -277,6 +279,9 @@ void loop() {
     #endif
     
   #endif */
+
+  // Last thing is to set up the time for the delay
+  lastTime = millis();
   }
 }
 
