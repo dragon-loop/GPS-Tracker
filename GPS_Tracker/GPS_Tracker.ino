@@ -20,8 +20,10 @@
 #define Route3 3 // Button for route 3
 #define Stop_Route 5 // Button for stopping a route
 
-#define Green_LED 8 // Green LED
-#define Red_LED 9 // Red LED can still use 12 and 13
+#define Route1_LED 8 // Green LED
+#define Route2_LED 9 // Red LED can still use 12 and 13
+#define Route3_LED 12 // Red LED can still use 12 and 13
+#define OffRoute_LED 13 // Red LED can still use 12 and 13
 
 // The following line can be used to turn off the shield after posting data. This
 // could be useful for saving energy for sparse readings but keep in mind that it
@@ -63,7 +65,7 @@ int buttonStateStop = 0;
 unsigned long lastTime = 0L;
 
 // The number of seconds in between posts (# of seconds times 1000L)
-unsigned long delayTime = (30*1000L);
+unsigned long delayTime = (60*1000L);
 
 // Start setup
 void setup() {
@@ -95,8 +97,13 @@ void setup() {
   pinMode(Route3, INPUT);
   pinMode(Stop_Route, INPUT);
 
-  pinMode(Green_LED, OUTPUT);
-  pinMode(Red_LED, OUTPUT);
+  pinMode(Route1_LED, OUTPUT);
+  pinMode(Route2_LED, OUTPUT);
+  pinMode(Route3_LED, OUTPUT);
+  pinMode(OffRoute_LED, OUTPUT);
+
+  // Start by lighting the Stop LED (red)
+  LEDStatus();
 
   // Perform first-time GPS/GPRS setup if the shield is going to remain on,
   // otherwise these won't be enabled in loop()
@@ -126,11 +133,12 @@ void setup() {
 
 void loop() {
 
-  // Check if a route has been started
+  // Check if a route has been started and light the corresponding LED
   routeState();
+  LEDStatus();
 
   // Check if stop button has been pressed
-  routeStop();
+  //routeStop();
 
   Serial.print(F("routeId: ")); Serial.println(routeId);
 
@@ -160,12 +168,13 @@ void loop() {
   // Get a fix on location
   // Use the top line if you want to parse UTC time data as well, the line below it if you don't care
   // while (!fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, &year, &month, &day, &hour, &minute, &second)) {
-  while (attempts < 5 && !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
+  while (attempts < 10 && !fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude)) {
     Serial.println(F("Failed to get GPS location, retrying..."));
     attempts++;
     delay(2000); // Retry every 2s
     routeState();
-    routeStop();
+    LEDStatus();
+    //routeStop();
   }
   Serial.print(F("Latitude: ")); Serial.println(latitude, 6);
   Serial.print(F("Longitude: ")); Serial.println(longitude, 6);
@@ -174,7 +183,8 @@ void loop() {
   Serial.print(F("Altitude: ")); Serial.println(altitude);
 
   routeState();
-  routeStop();
+  LEDStatus();
+  //routeStop();
   /*
   // Uncomment this if you care about parsing UTC time
   Serial.print(F("Year: ")); Serial.println(year);
@@ -222,13 +232,15 @@ void loop() {
   while (attempts < 3 && !fona.postData("POST", URL, body)) {
     Serial.println(F("Failed to complete HTTP POST..."));
     attempts++;
-    delay(2000);
+    //delay(2000);
     routeState();
-    routeStop();
+    LEDStatus();
+    //routeStop();
   }
 
   routeState();
-  routeStop();
+  LEDStatus();
+  //routeStop();
   
   // The code below will only run if turnOffShield is defined
   // It will turn off the shield after posting data
@@ -351,25 +363,26 @@ void MCUPowerDown() {
   sleep_cpu();
 }
 
-// Start a route if one of the buttons gets pressed
+// Start/end a route if one of the buttons gets pressed
 void routeState() {
 
   buttonState1 = digitalRead(Route1);
   buttonState2 = digitalRead(Route2);
   buttonState3 = digitalRead(Route3);
+  buttonStateStop = digitalRead(Stop_Route);
   
   if (buttonState1 == HIGH) {
     
     routeId = 1;
     // The number of seconds in between posts (# of seconds times 1000L)
-    delayTime = (5*1000L);
+    delayTime = (10*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
     
   } else if (buttonState2 == HIGH) {
     
     routeId = 2;
     // The number of seconds in between posts (# of seconds times 1000L)
-    delayTime = (10*1000L);
+    delayTime = (15*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
     
   } else if (buttonState3 == HIGH) {
@@ -379,11 +392,45 @@ void routeState() {
     delayTime = (30*1000L);
     Serial.print(F("routeId: ")); Serial.println(routeId);
     
+  } else if (buttonStateStop == HIGH) {
+    routeId = 0;
+    // The number of seconds in between posts (# of seconds times 1000L)
+    delayTime = (60*1000L);
+    Serial.print(F("routeId: ")); Serial.println(routeId);
+  }
+}
+
+// Light the correct LED
+void LEDStatus() {
+
+  if (routeId == 1) {
+    digitalWrite(Route1_LED, HIGH);
+    digitalWrite(Route2_LED, LOW);
+    digitalWrite(Route3_LED, LOW);
+    digitalWrite(OffRoute_LED, LOW);
+    
+  } else if (routeId == 2) {
+    digitalWrite(Route1_LED, LOW);
+    digitalWrite(Route2_LED, HIGH);
+    digitalWrite(Route3_LED, LOW);
+    digitalWrite(OffRoute_LED, LOW);
+    
+  } else if (routeId == 3) {
+    digitalWrite(Route1_LED, LOW);
+    digitalWrite(Route2_LED, LOW);
+    digitalWrite(Route3_LED, HIGH);
+    digitalWrite(OffRoute_LED, LOW);
+    
+  } else if (routeId == 0) {
+    digitalWrite(Route1_LED, LOW);
+    digitalWrite(Route2_LED, LOW);
+    digitalWrite(Route3_LED, LOW);
+    digitalWrite(OffRoute_LED, HIGH);
   }
 }
 
 // Reset the routeId to 0 to take the bus offline
-void routeStop() {
+/*void routeStop() {
 
   buttonStateStop = digitalRead(Stop_Route);
   
@@ -391,4 +438,4 @@ void routeStop() {
     routeId = 0;
     Serial.print(F("routeId: ")); Serial.println(routeId);
   }
-}
+}*/
